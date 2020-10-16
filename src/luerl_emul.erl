@@ -531,9 +531,15 @@ emul_1([?POP_ARGS(Ac)|Is], Cont, Lvs, Stk0, Env, Cs, St) ->
 emul_1([?COMMENT(_)|Is], Cont, Lvs, Stk, Env, Cs, St) ->
     %% This just a comment which is ignored.
     emul(Is, Cont, Lvs, Stk, Env, Cs, St);
-emul_1([?CURRENT_LINE(Line,File)|Is], Cont, Lvs, Stk, Env, Cs0, St) ->
-    Cs1 = push_current_line(Cs0, Line, File),	%Push onto callstack
-    emul(Is, Cont, Lvs, Stk, Env, Cs1, St);
+emul_1([?CURRENT_LINE(Line,File)=I|Is], Cont, Lvs, Stk, Env, Cs0, St0) ->
+    Cs1 = push_current_line(Cs0, Line, File),   %Push onto callstack
+    %% When tracing bring the state up to date and call the tracer.
+    Tfunc = St0#luerl.trace_func,
+    St1 = if is_function(Tfunc) ->
+		  Tfunc(I, St0#luerl{cs=Cs1});  %Ignore return value (?)
+	     true -> St0
+	  end,
+    emul(Is, Cont, Lvs, Stk, Env, Cs1, St1);
 emul_1([], [Is|Cont], Lvs, Stk, Env, Cs, St) ->
     emul(Is, Cont, Lvs, Stk, Env, Cs, St);
 emul_1([], [], Lvs, Stk, Env, Cs, St) ->

@@ -20,10 +20,13 @@
 
 -include("luerl.hrl").
 
--export([init/0,gc/1,
+-export([init/0,
+         set_trace_func/2,clear_trace_func/1,
+         set_trace_data/2,get_trace_data/1,
+         gc/1,
 	 load/2,load/3,loadfile/2,loadfile/3,
 	 load_module/3,
-	 do/2,dofile/2,
+         do/2,do/3,dofile/2,dofile/3,
 	 call/3,call_chunk/3,call_function/3,call_method/4,
 	 get_table_keys/2,set_table_keys/3,
 	 get_stacktrace/1
@@ -36,6 +39,24 @@
 
 init() ->
     luerl_emul:init().
+
+%% set_trace_func(TraceFunction, State) -> State.
+%% clear_trace_func(State) -> State.
+%% get_trace_data(State) -> TraceData.
+%% set_trace_data(TraceData, State) -> State.
+%%  Set the trace function and access the trace data.
+
+set_trace_func(Tfunc, St) ->
+    St#luerl{trace_func=Tfunc}.
+
+clear_trace_func(St) ->
+    St#luerl{trace_func=none}.
+
+get_trace_data(St) ->
+    St#luerl.trace_data.
+
+set_trace_data(Tdata, St) ->
+    St#luerl{trace_data=Tdata}.
 
 %% gc(State) -> State.
 gc(St) ->
@@ -80,23 +101,29 @@ load_module(_, _, _) ->
     error(badarg).
 
 %% luerl:do(String|Binary|Form, State) ->
+%% luerl:do(String|Binary|Form, Options, State) ->
 %%     {ok,Result,NewState} | {lua_error,Error,State}.
 
-do(S, St0) ->
-    case load(S, St0) of
-	{ok,Func,St1} ->
-	    call_function(Func, [], St1);
-	Error -> Error
+do(S, St) -> do(S, [], St).
+
+do(S, Opts, St0) ->
+    case load(S, Opts, St0) of
+        {ok,Func,St1} ->
+            call_function(Func, [], St1);
+        Error -> Error
     end.
 
 %% luerl:dofile(FileName, State) ->
+%% luerl:dofile(FileName, Options, State) ->
 %%     {ok,Result,NewState} | {lua_error,Error,State}.
 
-dofile(File, St0) ->
-    case loadfile(File, St0) of
-	{ok,Func,St1} ->
-	    call_function(Func, [], St1);
-	Error -> Error
+dofile(File, St) -> dofile(File, [], St).
+
+dofile(File, Opts, St0) ->
+    case loadfile(File, Opts, St0) of
+        {ok,Func,St1} ->
+            call_function(Func, [], St1);
+        Error -> Error
     end.
 
 %% call(FuncRef, Args, State) ->
