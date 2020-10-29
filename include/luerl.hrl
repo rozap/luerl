@@ -32,8 +32,10 @@
 		%%
 		meta=[],			%Data type metatables
 		rand,				%Random state
-		tag				%Unique tag
-	       }).
+                tag,                            %Unique tag
+                trace_func=none,                %The trace function
+                trace_data                      %The trace data
+               }).
 
 %% Table structure.
 -record(tstruct, {data,                         %Data table/array

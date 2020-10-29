@@ -536,7 +536,8 @@ emul_1([?CURRENT_LINE(Line,File)=I|Is], Cont, Lvs, Stk, Env, Cs0, St0) ->
     %% When tracing bring the state up to date and call the tracer.
     Tfunc = St0#luerl.trace_func,
     St1 = if is_function(Tfunc) ->
-		  Tfunc(I, St0#luerl{cs=Cs1});  %Ignore return value (?)
+		  Tdata = Tfunc(I, St0#luerl{stk=Stk,cs=Cs1}),
+		  St0#luerl{trace_data=Tdata};
 	     true -> St0
 	  end,
     emul(Is, Cont, Lvs, Stk, Env, Cs1, St1);
@@ -629,6 +630,7 @@ do_op2(Is, Cont, Lvs, [A2,A1|Stk], Env, Cs, St0, Op) ->
     end.
 
 %% do_break(LocalVars, CallStack, State) -> <emul>.
+
 do_break(Lvs0, Cs0, St) ->
     {Bf,Cs1} = find_loop_frame(Cs0, St),
     #loop_frame{is=Is,cont=Cont,lvs=Lvs1,stk=Stk,env=Env} = Bf,
@@ -638,11 +640,18 @@ do_break(Lvs0, Cs0, St) ->
 
 %% do_return(ArgCount, Stack, Callstack, State) -> <emul>.
 
-do_return(Ac, Stk0, Cs0, St) ->
-    {Cf,Cs1} = find_call_frame(Cs0, St),	%Find the first call frame
+do_return(Ac, Stk0, Cs0, St0) ->
+    {Cf,Cs1} = find_call_frame(Cs0, St0),       %Find the first call frame
     {Ret,Stk1} = pop_vals(Ac, Stk0),
+    %% When tracing bring the state up to date and call the tracer.
+    Tfunc = St0#luerl.trace_func,
+    St1  = if is_function(Tfunc) ->
+		   Tdata = Tfunc({return,Ret}, St0#luerl{stk=Stk1,cs=Cs1}),
+		   St0#luerl{trace_data=Tdata};
+	      true -> St0
+	   end,
     #call_frame{is=Is,cont=Cont,lvs=Lvs,env=Env} = Cf,
-    emul(Is, Cont, Lvs, [Ret|Stk1], Env, Cs1, St#luerl{cs=Cs1}).
+    emul(Is, Cont, Lvs, [Ret|Stk1], Env, Cs1, St1#luerl{cs=Cs1}).
 
 find_call_frame([#call_frame{}=Cf|Cs], _St) -> {Cf,Cs};
 find_call_frame([_|Cs], St) -> find_call_frame(Cs, St).
@@ -713,9 +722,16 @@ do_tail_mcall(_Is, _Cont, _Lvs, [Args,Obj|_Stk], _Env, Cs, St, Meth) ->
 %%  Setup environment for function and do the actual call.
 
 functioncall(#funref{env=Env}=Funref, Args, Stk, Cs, St0) ->
+    %% When tracing bring the state up to date and call the tracer.
+    Tfunc = St0#luerl.trace_func,
+    St1 = if is_function(Tfunc) ->
+		  Tdata = Tfunc({fcall,Funref,Args}, St0),
+		  St0#luerl{trace_data=Tdata};
+	     true -> St0
+	  end,
     %% Here we must save the stack in state as function may need it.
-    {Func,St1} = luerl_heap:get_funcdef(Funref, St0#luerl{stk=Stk}),
-    call_luafunc(Func, Args, Stk, Env, Cs, St1);
+    {Func,St2} = luerl_heap:get_funcdef(Funref, St1#luerl{stk=Stk}),
+    call_luafunc(Func, Args, Stk, Env, Cs, St2);
 functioncall(#erl_func{code=Func}, Args, Stk, Cs, St) ->
     call_erlfunc(Func, Args, Stk, Cs, St);
 functioncall(Func, Args, Stk, Cs, St) ->
