@@ -60,7 +60,8 @@
 		  esz,				%Env var size
 		  env,				%Environment
 		  pars,				%Parameters
-		  b}).				%Code block
+		  b,				%Code block
+		  meta}).			%FuncMetadata (name, line num)
 -record(erl_func,{code}).			%Erlang code (fun)
 
 -record(fref, {i}).				%Frame reference, index

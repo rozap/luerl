@@ -75,7 +75,7 @@
 		locf=false}).
 
 %% Expressions.
--record(fdef, {l,ps=[],ss=[],
+-record(fdef, {l,meta=none,ps=[],ss=[],
 	       vars=none,			%Variable info
 	       lsz=none,			%Local frame size
 	       lf=[],

@@ -426,7 +426,11 @@ functiondef(L, Name0, Ps0, B, St0) ->
     end,
     {Var,St1} = funcname(Name1, St0),
     {F,St2} = functiondef(L, Ps1, B, St1),
-    {Var,F,St2}.
+    F1 = F#fdef{meta=funcmeta(Name1)},
+    {Var,F1,St2}.
+
+funcmeta({'NAME', L, N}) -> {meta, N, L};
+funcmeta(_) -> none.
 
 is_method({'NAME',_,_}) -> no;
 is_method({'.',L,N,Rest0}) ->

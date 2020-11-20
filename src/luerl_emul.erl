@@ -408,8 +408,8 @@ load_chunk(#code{code=Code}, Env, St) ->
 
 load_function(F, St) -> load_function(F, [], St).
 
-load_function([?FDEF(Lsz, Esz, Pars, Is)], Env, St) ->
-    do_fdef(Lsz, Esz, Pars, Is, Env, St).
+load_function([?FDEF(Lsz, Esz, Pars, Is, Meta)], Env, St) ->
+    do_fdef(Lsz, Esz, Pars, Is, Env, St, Meta).
 
 %% call(Function, State) -> {Return,State}.
 %% call(Function, Args, State) -> {Return,State}.
@@ -431,7 +431,7 @@ itrace_print(Format, Args) ->
 %% exp(_, _) ->
 %%     error(boom).
 
--record(call_frame, {lvs,env}).			%Save these for the GC
+-record(call_frame, {lvs,env,meta}).			%Save these for the GC
 
 %% emul(Instrs, State).
 %% emul(Instrs, LocalVariables, Stack, Env, State).
@@ -542,8 +542,8 @@ emul_1([?OP(Op,1)|Is], Lvs, Stk, Env, St) ->
     do_op1(Is, Lvs, Stk, Env, St, Op);
 emul_1([?OP(Op,2)|Is], Lvs, Stk, Env, St) ->
     do_op2(Is, Lvs, Stk, Env, St, Op);
-emul_1([?FDEF(Lsz, Esz, Pars, Fis)|Is], Lvs, Stk, Env, St0) ->
-    {Func,St1} = do_fdef(Lsz, Esz, Pars, Fis, Env, St0),
+emul_1([?FDEF(Lsz, Esz, Pars, Fis, Meta)|Is], Lvs, Stk, Env, St0) ->
+    {Func,St1} = do_fdef(Lsz, Esz, Pars, Fis, Env, St0, Meta),
     emul(Is, Lvs, [Func|Stk], Env, St1);
 %% Control instructions.
 emul_1([?BLOCK(Lsz, Esz, Bis)|Is], Lvs0, Stk0, Env0, St0) ->
@@ -728,8 +728,8 @@ do_op2(Is, Lvs, [A2,A1|Stk], Env, St, Op) ->
 
 %% do_fdef(LocalSize, EnvSize, Pars, Instrs, Env, State) -> {Function,State}.
 
-do_fdef(Lsz, Esz, Pars, Is, Env, St) ->
-    {#lua_func{lsz=Lsz,esz=Esz,pars=Pars,env=Env,b=Is},St}.
+do_fdef(Lsz, Esz, Pars, Is, Env, St, Meta) ->
+    {#lua_func{lsz=Lsz,esz=Esz,pars=Pars,env=Env,b=Is,meta=Meta},St}.
 
 %% do_fcall_0(Instrs, LocalVars, Stack, Env, State) ->
 %% do_fcall_1(Instrs, LocalVars, Stack, Env, State) ->
@@ -764,10 +764,15 @@ functioncall(Func, Args, #luerl{stk=Stk}=St0) ->
 %%  call. It must move everything into State.
 
 functioncall(Is, Lvs, Stk0, Env, St0, Func, Args) ->
-    Fr = #call_frame{lvs=Lvs,env=Env},
+    Fr = #call_frame{lvs=Lvs,env=Env,meta=call_meta(Func)},
     Stk1 = [Fr|Stk0],
     {Ret,St1} = functioncall(Func, Args, Stk1, St0),
     emul(Is, Lvs, [Ret|Stk0], Env, St1).
+
+call_meta(#lua_func{meta=M}) ->
+    M;
+call_meta(_) ->
+    none.
 
 %% do_tail_fcall(Instrs, Acc, LocalVars, Stack, Env, State, ArgCount) ->
 %%     ReturnFromEmul.
