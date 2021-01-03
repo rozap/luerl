@@ -324,15 +324,9 @@ decode(#tref{}=T, St, In) ->
     decode_table(T, St, In);
 decode(#usdref{}=U, St, _) ->
     decode_userdata(U, St);
-decode(#funref{}=Fun, State, _) ->
-    F = fun(Args) ->
-		{Args1, State1} = encode_list(Args, State),
-		{Ret, State2} = luerl_emul:functioncall(Fun, Args1, State1),
-		decode_list(Ret, State2)
-	end,
-    F;						%Just a bare fun
+decode(#funref{}=Fun, State, _) -> Fun;
 decode(#erl_func{code=Fun}, _, _) -> Fun;
-decode(_, _, _) -> error(badarg).		%Shouldn't have anything else
+decode(F, _, _) -> error({wut, F}).		%Shouldn't have anything else
 
 decode_table(#tref{i=N}=T, St, In0) ->
     case lists:member(N, In0) of

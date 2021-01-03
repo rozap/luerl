@@ -83,13 +83,13 @@ init() ->
     %% Add the other standard libraries.
     St5 = load_libs([
 		     {<<"bit32">>,luerl_lib_bit32},
-		     {<<"io">>,luerl_lib_io},
+		     % {<<"io">>,luerl_lib_io},
 		     {<<"math">>,luerl_lib_math},
-		     {<<"os">>,luerl_lib_os},
+		     % {<<"os">>,luerl_lib_os},
 		     {<<"string">>,luerl_lib_string},
 		     {<<"utf8">>,luerl_lib_utf8},
-		     {<<"table">>,luerl_lib_table},
-		     {<<"debug">>,luerl_lib_debug}
+		     {<<"table">>,luerl_lib_table}
+		     % {<<"debug">>,luerl_lib_debug}
 		    ], St4),
     %% Set _G variable to point to it and add it to packages.loaded.
     St6 = set_global_key(<<"_G">>, _G, St5),
@@ -913,7 +913,7 @@ do_numfor_loop(Is, Cont, Lvs, Stk, Env, Cs, St, N, Limit, Step, Fis) ->
 	    emul([?BREAK|Is], Cont, Lvs, Stk, Env, Cs, St)
     end.
 
-%% do_genfor(Instrs, LocalVars, Stack, Env, 
+%% do_genfor(Instrs, LocalVars, Stack, Env,
 %%           CallStack, State, Vars, FromInstrs) -> <emul>
 %%  The top of the stack will contain the return values from the explist.
 

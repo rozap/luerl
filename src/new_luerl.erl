@@ -229,7 +229,7 @@ encode(F, St) when is_function(F, 1) ->
     {#erl_func{code=F1}, St};
 encode({userdata,Data}, St) ->
     luerl_heap:alloc_userdata(Data, St);
-encode(_, _) -> error(badarg).			%Can't encode anything else
+encode(E, _) -> error({badarg, E}).			%Can't encode anything else
 
 %% decode_list([LuerlTerm], State) -> [Term].
 %% decode(LuerlTerm, State) -> Term.
@@ -251,13 +251,7 @@ decode(#tref{}=T, St, In) ->
     decode_table(T, St, In);
 decode(#usdref{}=U, St, _) ->
     decode_userdata(U, St);
-decode(#funref{}=Fun, State, _) ->
-    F = fun(Args) ->
-		{Args1, State1} = encode_list(Args, State),
-		{Ret, State2} = luerl_emul:functioncall(Fun, Args1, State1),
-		decode_list(Ret, State2)
-	end,
-    F;						%Just a bare fun
+decode(#funref{}=Fun, _State, _) -> Fun;
 decode(#erl_func{code=Fun}, _, _) -> Fun;
 decode(_, _, _) -> error(badarg).		%Shouldn't have anything else
 
